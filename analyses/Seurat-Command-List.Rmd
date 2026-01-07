@@ -4,6 +4,22 @@ output: html_document
 date: "2026-01-07"
 ---
 #Seurat Command List
+```{r}
+
+devtools::install_github('satijalab/seurat-data')
+# install datasets 
+library(SeuratData)
+InstallData('pbmc3k')
+InstallData('cbmc')
+InstallData('ifnb')
+
+#load in pbmc example
+pbmc <- LoadData('pbmc3k')
+
+# load in multimodal example
+# type ?cbmc for more info
+cbmc <- LoadData('cbmc')
+```
 
 ```{r}
 library(dplyr)
@@ -23,7 +39,7 @@ pbmc <- FindClusters(object = pbmc)
 pbmc <- RunUMAP(object = pbmc, dims = 1:30)
 DimPlot(object = pbmc, reduction = "umap")
 ```
-
+#SCtransform version
 ```{r}
 pbmc <- SCTransform(object = pbmc)
 pbmc <- RunPCA(object = pbmc)
@@ -31,45 +47,114 @@ pbmc <- FindNeighbors(object = pbmc, dims = 1:30)
 pbmc <- FindClusters(object = pbmc)
 pbmc <- RunUMAP(object = pbmc, dims = 1:30)
 DimPlot(object = pbmc, reduction = "umap")
+pbmc <- SCTransform(pbmc) %>%
+  RunPCA() %>%
+  FindNeighbors (dims = 1:30)%>%
+  FindClusters()%>%
+  RunUMAP (dims = 1:30)
+
+```
+```{r}
+# Get cell and feature names, and total numbers
+# We show multiple ways to get the same output
+# cell names
+colnames(pbmc)
+Cells(pbmc)
+
+# feature names
+Features(pbmc)
+rownames(pbmc)
+
+# number of cells/features
+num_cells <- ncol(pbmc)
+num_features <- nrow(pbmc)
+
+# List of object  layers
+Layers(pbmc)
+
+# working with multimodal objects
+# list assays
+Assays(cbmc)
+
+# Assay-specific features (genes/ADT)
+Features(cbmc[["RNA"]])
+Features(cbmc[["ADT"]])
+
+# Variable feature names
+VariableFeatures(pbmc)
+
+
+```
+
+```{r setvarfeatures, eval=FALSE}
+# Set variable features
+cbmc <- FindVariableFeatures(cbmc)
+VariableFeatures(cbmc)
+
+#VariableFeatures(cbmc) <- var.gene.names Seems to be outdated since var.gene.names are not available
+
+# set for a specific assay
+VariableFeatures(cbmc[["ADT"]]) <- var.gene.names
 ```
 
 ```{r}
 # Setting and retrieving cell identities
-
 # Set identity classes to an existing column in meta data
-Idents(object = pbmc) <- "seurat_annotations"
+#Idents(object = pbmc) <- "seurat_annotations"
 
 # View cell identities, get summary table
-Idents(pbmc)
-table(Idents(pbmc))
+#Idents(pbmc)
+#table(Idents(pbmc))
 
 # Set identity to CD4 T cells for all cells
-Idents(pbmc) <- "CD4 T cells"
+#Idents(pbmc) <- "CD4 T cells"
+#Idents(pbmc) <- "seurat_annotations"
+
 
 # Set for a selected group of cells
-pbmc.cells <- Cells(pbmc)
-Idents(object = pbmc, cells = pbmc.cells[1:10]) <- "CD4 T cells"
+#pbmc.cells <- Cells(pbmc)
+#Idents(object = pbmc, cells = pbmc.cells[1:10]) <- "CD4 T cells"
 
 # Get cell identity classes
-Idents(object = pbmc)
-levels(x = pbmc)
+#Idents(object = pbmc)
+#levels(x = pbmc)
 
 # Stash cell identity classes in metadata
-pbmc[["old.ident"]] <- Idents(object = pbmc)
-pbmc <- StashIdent(object = pbmc, save.name = "old.ident")
+#pbmc[["old.ident"]] <- Idents(object = pbmc)
+#pbmc <- StashIdent(object = pbmc, save.name = "old.ident")
 
 # Rename identity classes
-pbmc <- RenameIdents(object = pbmc, `CD4 T cells` = "T Helper cells")
+#pbmc <- RenameIdents(object = pbmc, `CD4 T cells` = "T Helper cells")
 ```
 
+## Cell metadata
+```{r metadata}
+# View metadata data frame, stored in object@meta.data
+pbmc[[]]
+
+# Retrieve specific values from the metadata
+pbmc$nCount_RNA
+pbmc[[c('nFeature_RNA')]]
+
+# Add metadata, see ?AddMetaData
+random_group_labels <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc), replace = TRUE)
+pbmc$groups <- random_group_labels
+```
 
 #Subsetting and merging
 
 ```{r}
 #FetchData(object = pbmc, vars = c("PC_1", "nFeature_RNA", "MS4A1"), layer = "counts")
 
-# Subset Seurat object based on identity class, also see ?SubsetData
-subset(x = pbmc, idents = "B")
+# Subset Seurat object based on identity class, also see ?SubsetData --> Discreprencies of outdated tutorials
+
+#First check for identity
+levels(Idents(pbmc))
+colnames(pbmc@meta.data)
+table(pbmc$orig.ident)
+
+
+subset(x = pbmc, idents = "CD4 T cells")
 subset(x = pbmc, idents = c("Naive CD4 T", "CD8 T"), invert = TRUE)
 
 ```

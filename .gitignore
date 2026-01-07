@@ -6,3 +6,4 @@
 !analyses/**
 !metadata/**
 !envs/**
+.Rproj.user
